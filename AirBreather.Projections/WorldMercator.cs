@@ -45,10 +45,11 @@ namespace AirBreather.Projections
             // that depends on it... the larger the chunk that we process at once, the smaller the
             // impact that each stall has on the operation.  at the same time, we don't want to just
             // make a single call, or else Yeppp! will push all the intermediate values out of the
-            // CPU caches as it scans the remainder of the arrays.  I've tested some chunk sizes on
-            // my monster gaming machine, and it seemed to be just about right at 16384, but I'm
-            // backing off a bit so that it'll work better on CPUs with smaller cache sizes... which
-            // also happens to bring each array under the LOH threshold, though that's not all that
+            // CPU caches as it scans the remainder of the arrays (not to mention that our scratch
+            // buffer size will have to be bigger and bigger).  I've tested some chunk sizes on my
+            // monster gaming machine, and it seemed to be about right at 16384, but I'm backing off
+            // a bit so that it'll work better on CPUs with smaller cache sizes... which also
+            // happens to bring each array under the LOH threshold, though that's not all that
             // relevant because we use a buffer pool to amortize the allocation cost.
             const int ChunkSize = 4096;
             int fullChunkSize = Math.Min(ChunkSize, xs.Length);

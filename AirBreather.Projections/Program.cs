@@ -16,7 +16,7 @@ namespace AirBreather.Projections
             double[] ys = new double[CNT];
 
             Random rand = new Random(12345);
-            for (int i = 0; i < CNT; i++)
+            for (int i = 0; i < CNT; ++i)
             {
                 xs[i] = rand.NextDouble() * 360 - 180;
                 ys[i] = rand.NextDouble() * 170 - 85;
@@ -40,14 +40,14 @@ namespace AirBreather.Projections
             Console.WriteLine($"New: {sw.ElapsedTicks / (double)(Stopwatch.Frequency * YepppIterations):N9} seconds.");
 
             var results = new (double x, double y)[CNT];
-            for (int i = 0; i < results.Length; i++)
+            for (int i = 0; i < results.Length; ++i)
             {
                 results[i].x = outXs[i];
                 results[i].y = outYs[i];
             }
 
             var ins = new Coordinate[CNT];
-            for (int i = 0; i < ins.Length; i++)
+            for (int i = 0; i < ins.Length; ++i)
             {
                 ins[i] = new Coordinate(xs[i], ys[i]);
             }
