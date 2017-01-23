@@ -204,13 +204,9 @@ namespace AirBreather.Projections
 
         private static void Project(double[] xs, double[] ys, double[] outXs, double[] outYs, double[] twoWideScratchBuffer, int offset, int cnt)
         {
-            // outXs[offset] = xs[offset] * LONGITUDE_DEGREES_TO_WGS84;
-            Yeppp.Core.Multiply_V64fS64f_V64f(xs, offset, LONGITUDE_DEGREES_TO_WGS84, outXs, offset, cnt);
-
-            // everything else is to deal with the complicated latitude stuff.
             // use 3 "scratch" spaces where we can store intermediate values... kinda like registers
             // if we had true arbitrarily-sized "vector registers" that could hold a full "chunk".
-            // 2 "scratch" spaces come from a separate buffer, and the output array is the third.
+            // 2 "scratch" spaces are in a separate buffer, and the output array is the third.
             double[] scratch1 = outYs;
             int scratch1Off = offset;
 
@@ -220,7 +216,10 @@ namespace AirBreather.Projections
             double[] scratch3 = twoWideScratchBuffer;
             int scratch3Off = cnt;
 
-            // "register" allocations:
+            // outXs[offset] = xs[offset] * LONGITUDE_DEGREES_TO_WGS84;
+            Yeppp.Core.Multiply_V64fS64f_V64f(xs, offset, LONGITUDE_DEGREES_TO_WGS84, outXs, offset, cnt);
+
+            // scratch buffer (i.e., "vector register") assignments:
             // scratch1 gets a, h, i, j, k, l
             // scratch2 gets b, c, e, g
             // scratch3 gets d
@@ -241,12 +240,16 @@ namespace AirBreather.Projections
             // double e = 1 + c;
             Yeppp.Core.Add_IV64fS64f_IV64f(scratch2, scratch2Off, 1, cnt);
 
-            // double f = d / e;
-            // double g = Math.Pow(f, HALF_ECCENTRICITY_WGS84);
             // Yeppp! doesn't support division or POW yet.
             for (int i = 0; i < cnt; ++i)
             {
-                scratch2[scratch2Off + i] = Math.Pow(scratch3[scratch3Off + i] / scratch2[scratch2Off + i], HALF_ECCENTRICITY_WGS84);
+                // double f = d / e;
+                double f = scratch3[scratch3Off + i] / scratch2[scratch2Off + i];
+
+                // double g = Math.Pow(f, HALF_ECCENTRICITY_WGS84);
+                double g = Math.Pow(f, HALF_ECCENTRICITY_WGS84);
+
+                scratch2[scratch2Off + i] = g;
             }
 
             // double h = a / 2;
