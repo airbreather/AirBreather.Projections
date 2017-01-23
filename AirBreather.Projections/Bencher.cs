@@ -24,6 +24,7 @@ namespace AirBreather.Projections
         private const double PI_OVER_4 = Math.PI / 4;
         private const double PI_OVER_180 = Math.PI / 180;
         private const double FLATTENING_WGS84 = 1 / INVERSE_FLATTENING_WGS84;
+        private const double LONGITUDE_DEGREES_TO_WGS84 = PI_OVER_180 * A_WGS84;
         ////private const double B_WGS84 = A_WGS84 * (1 - FLATTENING_WGS84);
         private const double ECCENTRICITY_SQUARED_WGS84 = FLATTENING_WGS84 * (2 - FLATTENING_WGS84);
         private static readonly double ECCENTRICITY_WGS84 = Math.Sqrt(ECCENTRICITY_SQUARED_WGS84);
@@ -43,27 +44,27 @@ namespace AirBreather.Projections
             Random rand = new Random(12345);
             for (int i = 0; i < CNT; ++i)
             {
-                this.xs[i] = rand.NextDouble() * 360 - 180;
-                this.ys[i] = rand.NextDouble() * 170 - 85;
-                this.coords[i] = new Coordinate(this.xs[i], this.ys[i]);
+                xs[i] = rand.NextDouble() * 360 - 180;
+                ys[i] = rand.NextDouble() * 170 - 85;
+                coords[i] = new Coordinate(xs[i], ys[i]);
             }
 
             const string ProjectionWKT = @"PROJCS[""WGS 84 / World Mercator"",GEOGCS[""WGS 84"",DATUM[""WGS_1984"",SPHEROID[""WGS 84"",6378137,298.257223563,AUTHORITY[""EPSG"",""7030""]],AUTHORITY[""EPSG"",""6326""]],PRIMEM[""Greenwich"",0,AUTHORITY[""EPSG"",""8901""]],UNIT[""degree"",0.01745329251994328,AUTHORITY[""EPSG"",""9122""]],AUTHORITY[""EPSG"",""4326""]],UNIT[""metre"",1,AUTHORITY[""EPSG"",""9001""]],PROJECTION[""Mercator_1SP""],PARAMETER[""central_meridian"",0],PARAMETER[""latitude_of_origin"",0],PARAMETER[""scale_factor"",1],PARAMETER[""false_easting"",0],PARAMETER[""false_northing"",0],AUTHORITY[""EPSG"",""3395""],AXIS[""Easting"",EAST],AXIS[""Northing"",NORTH]]";
             var projCS = (IProjectedCoordinateSystem)CoordinateSystemWktReader.Parse(ProjectionWKT);
-            this.projNetTransform = new CoordinateTransformationFactory().CreateFromCoordinateSystems(projCS.GeographicCoordinateSystem, projCS).MathTransform;
+            projNetTransform = new CoordinateTransformationFactory().CreateFromCoordinateSystems(projCS.GeographicCoordinateSystem, projCS).MathTransform;
         }
 
         [Benchmark(Baseline = true)]
-        public void ProjectProjNet() => this.projNetTransform.TransformList(this.coords);
+        public void ProjectProjNet() => projNetTransform.TransformList(coords);
 
         [Benchmark]
         public void ProjectScalar()
         {
-            for (int offset = 0; offset < this.xs.Length; ++offset)
+            for (int offset = 0; offset < xs.Length; ++offset)
             {
-                this.outXs[offset] = this.xs[offset] * PI_OVER_180 * A_WGS84;
+                outXs[offset] = xs[offset] * LONGITUDE_DEGREES_TO_WGS84;
 
-                double a = this.ys[offset] * PI_OVER_180;
+                double a = ys[offset] * PI_OVER_180;
                 double b = Math.Sin(a);
                 double c = b * ECCENTRICITY_WGS84;
                 double d = 1 - c;
@@ -75,35 +76,34 @@ namespace AirBreather.Projections
                 double j = Math.Tan(i);
                 double k = j * g;
                 double l = Math.Log(k);
-                this.outYs[offset] = l * A_WGS84;
+                outYs[offset] = l * A_WGS84;
             }
         }
 
         [Benchmark]
         public void ProjectScalarUnrolled()
         {
-            if ((this.xs.Length & 3) != 0)
+            if ((xs.Length & 3) != 0)
             {
                 throw new NotSupportedException("I don't feel like dealing with the remainder right now.");
             }
 
-            for (int offset = 4; offset < this.xs.Length; offset += 4)
+            for (int offset = 4; offset < xs.Length; offset += 4)
             {
-                const double LONGITUDE_DEGREES_TO_WGS84 = PI_OVER_180 * A_WGS84;
-                double x1 = this.xs[offset - 4] * LONGITUDE_DEGREES_TO_WGS84;
-                double x2 = this.xs[offset - 3] * LONGITUDE_DEGREES_TO_WGS84;
-                double x3 = this.xs[offset - 2] * LONGITUDE_DEGREES_TO_WGS84;
-                double x4 = this.xs[offset - 1] * LONGITUDE_DEGREES_TO_WGS84;
+                double x1 = xs[offset - 4] * LONGITUDE_DEGREES_TO_WGS84;
+                double x2 = xs[offset - 3] * LONGITUDE_DEGREES_TO_WGS84;
+                double x3 = xs[offset - 2] * LONGITUDE_DEGREES_TO_WGS84;
+                double x4 = xs[offset - 1] * LONGITUDE_DEGREES_TO_WGS84;
 
-                this.outXs[offset - 4] = x1;
-                this.outXs[offset - 3] = x2;
-                this.outXs[offset - 2] = x3;
-                this.outXs[offset - 1] = x4;
+                outXs[offset - 4] = x1;
+                outXs[offset - 3] = x2;
+                outXs[offset - 2] = x3;
+                outXs[offset - 1] = x4;
 
-                double a1 = this.ys[offset - 4] * PI_OVER_180;
-                double a2 = this.ys[offset - 3] * PI_OVER_180;
-                double a3 = this.ys[offset - 2] * PI_OVER_180;
-                double a4 = this.ys[offset - 1] * PI_OVER_180;
+                double a1 = ys[offset - 4] * PI_OVER_180;
+                double a2 = ys[offset - 3] * PI_OVER_180;
+                double a3 = ys[offset - 2] * PI_OVER_180;
+                double a4 = ys[offset - 1] * PI_OVER_180;
 
                 double b1 = Math.Sin(a1);
                 double b2 = Math.Sin(a2);
@@ -165,24 +165,18 @@ namespace AirBreather.Projections
                 double m3 = l3 * A_WGS84;
                 double m4 = l4 * A_WGS84;
 
-                this.outYs[offset - 4] = m1;
-                this.outYs[offset - 3] = m2;
-                this.outYs[offset - 2] = m3;
-                this.outYs[offset - 1] = m4;
+                outYs[offset - 4] = m1;
+                outYs[offset - 3] = m2;
+                outYs[offset - 2] = m3;
+                outYs[offset - 1] = m4;
             }
         }
 
-        [Benchmark] public void ProjectYeppp_128() => this.ProjectYeppp(128);
-        [Benchmark] public void ProjectYeppp_256() => this.ProjectYeppp(256);
-        [Benchmark] public void ProjectYeppp_512() => this.ProjectYeppp(512);
-        [Benchmark] public void ProjectYeppp_1024() => this.ProjectYeppp(1024);
-        [Benchmark] public void ProjectYeppp_2048() => this.ProjectYeppp(2048);
-        [Benchmark] public void ProjectYeppp_4096() => this.ProjectYeppp(4096);
-        [Benchmark] public void ProjectYeppp_8192() => this.ProjectYeppp(8192);
-        [Benchmark] public void ProjectYeppp_16384() => this.ProjectYeppp(16384);
-        [Benchmark] public void ProjectYeppp_32768() => this.ProjectYeppp(32768);
-        [Benchmark] public void ProjectYeppp_65536() => this.ProjectYeppp(65536);
-        [Benchmark] public void ProjectYeppp_131072() => this.ProjectYeppp(131072);
+        [Benchmark] public void ProjectYeppp_1024() => ProjectYeppp(1024);
+        [Benchmark] public void ProjectYeppp_2048() => ProjectYeppp(2048);
+        [Benchmark] public void ProjectYeppp_4096() => ProjectYeppp(4096);
+        [Benchmark] public void ProjectYeppp_8192() => ProjectYeppp(8192);
+        [Benchmark] public void ProjectYeppp_16384() => ProjectYeppp(16384);
 
         private void ProjectYeppp(int maxChunkSize)
         {
@@ -194,12 +188,12 @@ namespace AirBreather.Projections
             {
                 for (int i = 0; i < endOfAllFullChunks; i += fullChunkSize)
                 {
-                    Project(this.xs, this.ys, this.outXs, this.outYs, twoWideScratchBuffer, i, fullChunkSize);
+                    Project(xs, ys, outXs, outYs, twoWideScratchBuffer, i, fullChunkSize);
                 }
 
                 if (endOfAllFullChunks != CNT)
                 {
-                    Project(this.xs, this.ys, this.outXs, this.outYs, twoWideScratchBuffer, endOfAllFullChunks, CNT - endOfAllFullChunks);
+                    Project(xs, ys, outXs, outYs, twoWideScratchBuffer, endOfAllFullChunks, CNT - endOfAllFullChunks);
                 }
             }
             finally
@@ -210,13 +204,13 @@ namespace AirBreather.Projections
 
         private static void Project(double[] xs, double[] ys, double[] outXs, double[] outYs, double[] twoWideScratchBuffer, int offset, int cnt)
         {
-            // longitude is easy.
-            Yeppp.Core.Multiply_V64fS64f_V64f(xs, offset, PI_OVER_180 * A_WGS84, outXs, offset, cnt);
+            // outXs[offset] = xs[offset] * LONGITUDE_DEGREES_TO_WGS84;
+            Yeppp.Core.Multiply_V64fS64f_V64f(xs, offset, LONGITUDE_DEGREES_TO_WGS84, outXs, offset, cnt);
 
             // everything else is to deal with the complicated latitude stuff.
-            // use 2 "scratch" spaces where we can store intermediate values... kinda like registers
+            // use 3 "scratch" spaces where we can store intermediate values... kinda like registers
             // if we had true arbitrarily-sized "vector registers" that could hold a full "chunk".
-            // we can also use the output array as a third "register".
+            // 2 "scratch" spaces come from a separate buffer, and the output array is the third.
             double[] scratch1 = outYs;
             int scratch1Off = offset;
 
@@ -228,48 +222,49 @@ namespace AirBreather.Projections
 
             // "register" allocations:
             // scratch1 gets a, h, i, j, k, l
-            // scratch2 gets b, c, e, f/g
+            // scratch2 gets b, c, e, g
             // scratch3 gets d
+            // nobody   gets f (it's transient in the scalar portion)
             //
-            // a = DEGREES_TO_RADIANS(y)
+            // double a = ys[offset] * PI_OVER_180;
             Yeppp.Core.Multiply_V64fS64f_V64f(ys, offset, PI_OVER_180, scratch1, scratch1Off, cnt);
 
-            // b = SIN(a)
+            // double b = Math.Sin(a);
             Yeppp.Math.Sin_V64f_V64f(outYs, offset, scratch2, scratch2Off, cnt);
 
-            // c = b * ECCENTRICITY_WGS84
+            // double c = b * ECCENTRICITY_WGS84;
             Yeppp.Core.Multiply_V64fS64f_V64f(scratch2, scratch2Off, ECCENTRICITY_WGS84, scratch2, scratch2Off, cnt);
 
-            // d = (1 - c)
+            // double d = 1 - c;
             Yeppp.Core.Subtract_S64fV64f_V64f(1, scratch2, scratch2Off, scratch3, scratch3Off, cnt);
 
-            // e = (1 + c)
+            // double e = 1 + c;
             Yeppp.Core.Add_IV64fS64f_IV64f(scratch2, scratch2Off, 1, cnt);
 
-            // f = d / e
-            // g = POW(f, HALF_ECCENTRICITY_WGS84)
+            // double f = d / e;
+            // double g = Math.Pow(f, HALF_ECCENTRICITY_WGS84);
             // Yeppp! doesn't support division or POW yet.
             for (int i = 0; i < cnt; ++i)
             {
                 scratch2[scratch2Off + i] = Math.Pow(scratch3[scratch3Off + i] / scratch2[scratch2Off + i], HALF_ECCENTRICITY_WGS84);
             }
 
-            // h = a / 2
+            // double h = a / 2;
             Yeppp.Core.Multiply_V64fS64f_V64f(scratch1, scratch1Off, 0.5, scratch1, scratch1Off, cnt);
 
-            // i = h + PI_OVER_4
+            // double i = h + PI_OVER_4;
             Yeppp.Core.Add_V64fS64f_V64f(scratch1, scratch1Off, PI_OVER_4, scratch1, scratch1Off, cnt);
 
-            // j = TAN(i)
+            // double j = Math.Tan(i);
             Yeppp.Math.Tan_V64f_V64f(scratch1, scratch1Off, scratch1, scratch1Off, cnt);
 
-            // k = j * g
+            // double k = j * g;
             Yeppp.Core.Multiply_V64fV64f_V64f(scratch1, scratch1Off, scratch2, scratch2Off, scratch1, scratch1Off, cnt);
 
-            // l = LOG(k)
+            // double l = Math.Log(k);
             Yeppp.Math.Log_V64f_V64f(scratch1, scratch1Off, scratch1, scratch1Off, cnt);
 
-            // m = l * A_WGS84
+            // outYs[offset] = l * A_WGS84;
             Yeppp.Core.Multiply_V64fS64f_V64f(scratch1, scratch1Off, A_WGS84, outYs, offset, cnt);
         }
     }
