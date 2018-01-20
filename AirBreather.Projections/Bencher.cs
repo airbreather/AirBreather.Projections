@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Buffers;
+using System.Runtime;
+using System.Runtime.InteropServices;
+using System.Text;
 
 using BenchmarkDotNet.Attributes;
 
@@ -14,7 +17,7 @@ namespace AirBreather.Projections
 {
     public class Bencher
     {
-        private const int CNT = 1000000;
+        private const int CNT = 1024 * 1024 + 3;
 
         // "EXACT" values (WGS84 is defined by these parameters).
         private const double A_WGS84 = 6_378_137;
@@ -41,6 +44,14 @@ namespace AirBreather.Projections
 
         public Bencher()
         {
+            LoadLibrary(@"C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2018.1.156\windows\redist\intel64_win\compiler\svml_dispmd.dll");
+            LoadLibrary(@"C:\Users\Joe\src\AirBreather.Projections\x64\Release\proj-native.dll");
+
+            if (!GCSettings.IsServerGC)
+            {
+                throw new Exception();
+            }
+
             Random rand = new Random(12345);
             for (int i = 0; i < CNT; ++i)
             {
@@ -50,8 +61,44 @@ namespace AirBreather.Projections
             }
 
             const string ProjectionWKT = @"PROJCS[""WGS 84 / World Mercator"",GEOGCS[""WGS 84"",DATUM[""WGS_1984"",SPHEROID[""WGS 84"",6378137,298.257223563,AUTHORITY[""EPSG"",""7030""]],AUTHORITY[""EPSG"",""6326""]],PRIMEM[""Greenwich"",0,AUTHORITY[""EPSG"",""8901""]],UNIT[""degree"",0.01745329251994328,AUTHORITY[""EPSG"",""9122""]],AUTHORITY[""EPSG"",""4326""]],UNIT[""metre"",1,AUTHORITY[""EPSG"",""9001""]],PROJECTION[""Mercator_1SP""],PARAMETER[""central_meridian"",0],PARAMETER[""latitude_of_origin"",0],PARAMETER[""scale_factor"",1],PARAMETER[""false_easting"",0],PARAMETER[""false_northing"",0],AUTHORITY[""EPSG"",""3395""],AXIS[""Easting"",EAST],AXIS[""Northing"",NORTH]]";
-            var projCS = (IProjectedCoordinateSystem)CoordinateSystemWktReader.Parse(ProjectionWKT);
+            var projCS = (IProjectedCoordinateSystem)CoordinateSystemWktReader.Parse(ProjectionWKT, Encoding.Default);
             projNetTransform = new CoordinateTransformationFactory().CreateFromCoordinateSystems(projCS.GeographicCoordinateSystem, projCS).MathTransform;
+
+            this.Verify();
+        }
+
+        public void Verify()
+        {
+            var c = projNetTransform.TransformList(coords);
+            double[] baselineXs = (double[])this.outXs.Clone();
+            double[] baselineYs = (double[])this.outYs.Clone();
+            for (int i = 0; i < CNT; ++i)
+            {
+                (baselineXs[i], baselineYs[i]) = (c[i].X, c[i].Y);
+            }
+
+            this.ProjectScalar();
+            VerifyNext(nameof(this.ProjectScalar));
+            this.ProjectScalarUnrolled();
+            VerifyNext(nameof(this.ProjectScalarUnrolled));
+            this.ProjectNative();
+            VerifyNext(nameof(this.ProjectNative));
+
+            void VerifyNext(string alg)
+            {
+                for (int i = 0; i < CNT; ++i)
+                {
+                    if (Math.Abs(baselineXs[i] - this.outXs[i]) > 1)
+                    {
+                        throw new Exception($"{alg}: X{i} too far apart: << {baselineXs[i]} >> vs. << {this.outXs[i]} >>");
+                    }
+
+                    if (Math.Abs(baselineYs[i] - this.outYs[i]) > 1)
+                    {
+                        throw new Exception($"{alg}: Y{i} too far apart: << {baselineYs[i]} >> vs. << {this.outYs[i]} >>");
+                    }
+                }
+            }
         }
 
         [Benchmark(Baseline = true)]
@@ -83,11 +130,6 @@ namespace AirBreather.Projections
         [Benchmark]
         public void ProjectScalarUnrolled()
         {
-            if ((xs.Length & 3) != 0)
-            {
-                throw new NotSupportedException("I don't feel like dealing with the remainder right now.");
-            }
-
             for (int offset = 4; offset < xs.Length; offset += 4)
             {
                 double x1 = xs[offset - 4] * LONGITUDE_DEGREES_TO_WGS84;
@@ -170,6 +212,25 @@ namespace AirBreather.Projections
                 outYs[offset - 2] = m3;
                 outYs[offset - 1] = m4;
             }
+
+            for (int offset = xs.Length - (xs.Length & 3); offset < xs.Length; ++offset)
+            {
+                outXs[offset] = xs[offset] * LONGITUDE_DEGREES_TO_WGS84;
+
+                double a = ys[offset] * PI_OVER_180;
+                double b = Math.Sin(a);
+                double c = b * ECCENTRICITY_WGS84;
+                double d = 1 - c;
+                double e = 1 + c;
+                double f = d / e;
+                double g = Math.Pow(f, HALF_ECCENTRICITY_WGS84);
+                double h = a / 2;
+                double i = h + PI_OVER_4;
+                double j = Math.Tan(i);
+                double k = j * g;
+                double l = Math.Log(k);
+                outYs[offset] = l * A_WGS84;
+            }
         }
 
         [Benchmark] public void ProjectYeppp_1024() => ProjectYeppp(1024);
@@ -204,6 +265,10 @@ namespace AirBreather.Projections
 
         private static void Project(double[] xs, double[] ys, double[] outXs, double[] outYs, double[] twoWideScratchBuffer, int offset, int cnt)
         {
+            var m = Yeppp.Library.GetCpuMicroarchitecture();
+            var aaa = Yeppp.Library.GetCpuArchitecture();
+            var zzz = Yeppp.Library.GetProcessABI();
+
             // use 3 "scratch" spaces where we can store intermediate values... kinda like registers
             // if we had true arbitrarily-sized "vector registers" that could hold a full "chunk".
             // 2 "scratch" spaces are in a separate buffer, and the output array is the third.
@@ -270,5 +335,14 @@ namespace AirBreather.Projections
             // outYs[offset] = l * A_WGS84;
             Yeppp.Core.Multiply_V64fS64f_V64f(scratch1, scratch1Off, A_WGS84, outYs, offset, cnt);
         }
+
+        [Benchmark]
+        public void ProjectNative() => proj_wgs84_avx2(CNT, xs, ys, outXs, outYs);
+
+        [DllImport("proj-native.dll")]
+        private static extern void proj_wgs84_avx2(int cnt, double[] xs, double[] ys, double[] outXs, double[] outYs);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern IntPtr LoadLibrary(string dllToLoad);
     }
 }
