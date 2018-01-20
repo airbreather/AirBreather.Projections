@@ -13,12 +13,13 @@ AllowVeryLargeObjects=True  Server=True
 ```
 |                Method |      Mean |     Error |    StdDev | Scaled |
 |---------------------- |----------:|----------:|----------:|-------:|
-|        ProjectProjNet | 210.63 ms | 0.4428 ms | 0.3697 ms |   1.00 |
-|         ProjectScalar | 109.09 ms | 0.0479 ms | 0.0425 ms |   0.52 |
-| ProjectScalarUnrolled | 106.08 ms | 0.0552 ms | 0.0516 ms |   0.50 |
-|     ProjectYeppp_1024 |  76.19 ms | 0.0642 ms | 0.0601 ms |   0.36 |
-|     ProjectYeppp_2048 |  75.78 ms | 0.0786 ms | 0.0656 ms |   0.36 |
-|     ProjectYeppp_4096 |  75.87 ms | 0.0467 ms | 0.0414 ms |   0.36 |
-|     ProjectYeppp_8192 |  76.01 ms | 0.1878 ms | 0.1665 ms |   0.36 |
-|    ProjectYeppp_16384 |  76.06 ms | 0.1078 ms | 0.0956 ms |   0.36 |
-|         ProjectNative |  26.49 ms | 0.0431 ms | 0.0382 ms |   0.13 |
+|        ProjectProjNet | 210.30 ms | 1.3040 ms | 1.2198 ms |   1.00 |
+|         ProjectScalar | 109.19 ms | 0.0234 ms | 0.0195 ms |   0.52 |
+| ProjectScalarUnrolled | 105.80 ms | 0.0287 ms | 0.0224 ms |   0.50 |
+|     ProjectYeppp_1024 |  76.33 ms | 0.0507 ms | 0.0424 ms |   0.36 |
+|     ProjectYeppp_2048 |  75.60 ms | 0.0145 ms | 0.0113 ms |   0.36 |
+|     ProjectYeppp_4096 |  75.98 ms | 0.0863 ms | 0.0721 ms |   0.36 |
+|     ProjectYeppp_8192 |  76.38 ms | 0.5203 ms | 0.4867 ms |   0.36 |
+|    ProjectYeppp_16384 |  76.51 ms | 0.4288 ms | 0.3801 ms |   0.36 |
+|  ProjectNative_Scalar |  57.51 ms | 0.3940 ms | 0.3492 ms |   0.27 |
+|    ProjectNative_AVX2 |  26.75 ms | 0.0381 ms | 0.0297 ms |   0.13 |

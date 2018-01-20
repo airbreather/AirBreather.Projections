@@ -81,8 +81,10 @@ namespace AirBreather.Projections
             VerifyNext(nameof(this.ProjectScalar));
             this.ProjectScalarUnrolled();
             VerifyNext(nameof(this.ProjectScalarUnrolled));
-            this.ProjectNative();
-            VerifyNext(nameof(this.ProjectNative));
+            this.ProjectNative_AVX2();
+            VerifyNext(nameof(this.ProjectNative_AVX2));
+            this.ProjectNative_Scalar();
+            VerifyNext(nameof(this.ProjectNative_Scalar));
 
             void VerifyNext(string alg)
             {
@@ -337,7 +339,13 @@ namespace AirBreather.Projections
         }
 
         [Benchmark]
-        public void ProjectNative() => proj_wgs84_avx2(CNT, xs, ys, outXs, outYs);
+        public void ProjectNative_Scalar() => proj_wgs84_scalar(CNT, xs, ys, outXs, outYs);
+
+        [Benchmark]
+        public void ProjectNative_AVX2() => proj_wgs84_avx2(CNT, xs, ys, outXs, outYs);
+
+        [DllImport("proj-native.dll")]
+        private static extern void proj_wgs84_scalar(int cnt, double[] xs, double[] ys, double[] outXs, double[] outYs);
 
         [DllImport("proj-native.dll")]
         private static extern void proj_wgs84_avx2(int cnt, double[] xs, double[] ys, double[] outXs, double[] outYs);

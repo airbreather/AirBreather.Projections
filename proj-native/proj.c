@@ -2,6 +2,28 @@
 #include <math.h>
 #include <stdint.h>
 
+__declspec(dllexport) void proj_wgs84_scalar(const int cnt, const double* xs, const double* ys, double* outXs, double* outYs)
+{
+	for (int o = 0; o < cnt; o++)
+	{
+		outXs[o] = xs[o] * 111319.49079327357;
+
+		double a = ys[o] * 0.017453292519943295;
+		double b = sin(a);
+		double c = b * 0.081819190842621486;
+		double d = 1 - c;
+		double e = 1 + c;
+		double f = d / e;
+		double g = pow(f, 0.040909595421310743);
+		double h = a / 2;
+		double i = h + 0.78539816339744828;
+		double j = tan(i);
+		double k = j * g;
+		double l = log(k);
+		outYs[o] = l * 6378137;
+	}
+}
+
 __declspec(dllexport) void proj_wgs84_avx2(const int cnt, const double* xs, const double* ys, double* outXs, double* outYs)
 {
 	/* some constants we use... they're not compiled in as true "constants", so
@@ -47,24 +69,5 @@ __declspec(dllexport) void proj_wgs84_avx2(const int cnt, const double* xs, cons
 
 	/* couldn't figure out masked load / store to avoid a scalar loop.
 	   oh well, this is quite good enough as it is. */
-	while (o < cnt)
-	{
-		outXs[o] = xs[o] * 111319.49079327357;
-
-		double a = ys[o] * 0.017453292519943295;
-		double b = sin(a);
-		double c = b * 0.081819190842621486;
-		double d = 1 - c;
-		double e = 1 + c;
-		double f = d / e;
-		double g = pow(f, 0.040909595421310743);
-		double h = a / 2;
-		double i = h + 0.78539816339744828;
-		double j = tan(i);
-		double k = j * g;
-		double l = log(k);
-		outYs[o] = l * 6378137;
-
-		o++;
-	}
+	proj_wgs84_scalar(cnt - o, xs + o, ys + o, outXs + o, outYs + o);
 }
