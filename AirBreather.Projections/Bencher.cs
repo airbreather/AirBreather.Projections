@@ -113,127 +113,147 @@ namespace AirBreather.Projections
         {
             for (int offset = 0; offset < xs.Length; ++offset)
             {
-                outXs[offset] = xs[offset] * LONGITUDE_DEGREES_TO_WGS84;
+                double x = xs[offset];
+                x = xs[offset] * LONGITUDE_DEGREES_TO_WGS84;
+                outXs[offset] = x;
 
-                double a = ys[offset] * PI_OVER_180;
-                double b = Math.Sin(a);
-                double c = b * ECCENTRICITY_WGS84;
-                double d = 1 - c;
-                double e = 1 + c;
-                double f = d / e;
-                double g = Math.Pow(f, HALF_ECCENTRICITY_WGS84);
-                double h = a / 2;
-                double i = h + PI_OVER_4;
-                double j = Math.Tan(i);
-                double k = j * g;
-                double l = Math.Log(k);
-                outYs[offset] = l * A_WGS84;
+                double a = ys[offset];
+                double b = a * PI_OVER_180;
+                double c = Math.Sin(b);
+                double d = c * ECCENTRICITY_WGS84;
+                double e = 1 - d;
+                double f = 1 + d;
+                double g = e / f;
+                double h = Math.Pow(g, HALF_ECCENTRICITY_WGS84);
+                double i = b / 2;
+                double j = i + PI_OVER_4;
+                double k = Math.Tan(j);
+                double l = k * h;
+                double m = Math.Log(l);
+                double n = m * A_WGS84;
+                outYs[offset] = n;
             }
         }
 
         [Benchmark]
         public void ProjectScalarUnrolled()
         {
-            for (int offset = 4; offset <= xs.Length; offset += 4)
+            int offset;
+            for (offset = 4; offset <= xs.Length; offset += 4)
             {
-                double x1 = xs[offset - 4] * LONGITUDE_DEGREES_TO_WGS84;
-                double x2 = xs[offset - 3] * LONGITUDE_DEGREES_TO_WGS84;
-                double x3 = xs[offset - 2] * LONGITUDE_DEGREES_TO_WGS84;
-                double x4 = xs[offset - 1] * LONGITUDE_DEGREES_TO_WGS84;
+                double x1 = xs[offset - 4];
+                double x2 = xs[offset - 3];
+                double x3 = xs[offset - 2];
+                double x4 = xs[offset - 1];
+
+                x1 = x1 * LONGITUDE_DEGREES_TO_WGS84;
+                x2 = x2 * LONGITUDE_DEGREES_TO_WGS84;
+                x3 = x3 * LONGITUDE_DEGREES_TO_WGS84;
+                x4 = x4 * LONGITUDE_DEGREES_TO_WGS84;
 
                 outXs[offset - 4] = x1;
                 outXs[offset - 3] = x2;
                 outXs[offset - 2] = x3;
                 outXs[offset - 1] = x4;
 
-                double a1 = ys[offset - 4] * PI_OVER_180;
-                double a2 = ys[offset - 3] * PI_OVER_180;
-                double a3 = ys[offset - 2] * PI_OVER_180;
-                double a4 = ys[offset - 1] * PI_OVER_180;
+                double a1 = ys[offset - 4];
+                double a2 = ys[offset - 3];
+                double a3 = ys[offset - 2];
+                double a4 = ys[offset - 1];
 
-                double b1 = Math.Sin(a1);
-                double b2 = Math.Sin(a2);
-                double b3 = Math.Sin(a3);
-                double b4 = Math.Sin(a4);
+                double b1 = a1 * PI_OVER_180;
+                double b2 = a2 * PI_OVER_180;
+                double b3 = a3 * PI_OVER_180;
+                double b4 = a4 * PI_OVER_180;
 
-                double c1 = b1 * ECCENTRICITY_WGS84;
-                double c2 = b2 * ECCENTRICITY_WGS84;
-                double c3 = b3 * ECCENTRICITY_WGS84;
-                double c4 = b4 * ECCENTRICITY_WGS84;
+                double c1 = Math.Sin(b1);
+                double c2 = Math.Sin(b2);
+                double c3 = Math.Sin(b3);
+                double c4 = Math.Sin(b4);
 
-                double d1 = 1 - c1;
-                double d2 = 1 - c2;
-                double d3 = 1 - c3;
-                double d4 = 1 - c4;
+                double d1 = c1 * ECCENTRICITY_WGS84;
+                double d2 = c2 * ECCENTRICITY_WGS84;
+                double d3 = c3 * ECCENTRICITY_WGS84;
+                double d4 = c4 * ECCENTRICITY_WGS84;
 
-                double e1 = 1 + c1;
-                double e2 = 1 + c2;
-                double e3 = 1 + c3;
-                double e4 = 1 + c4;
+                double e1 = 1 - d1;
+                double e2 = 1 - d2;
+                double e3 = 1 - d3;
+                double e4 = 1 - d4;
 
-                double f1 = d1 / e1;
-                double f2 = d2 / e2;
-                double f3 = d3 / e3;
-                double f4 = d4 / e4;
+                double f1 = 1 + d1;
+                double f2 = 1 + d2;
+                double f3 = 1 + d3;
+                double f4 = 1 + d4;
 
-                double g1 = Math.Pow(f1, HALF_ECCENTRICITY_WGS84);
-                double g2 = Math.Pow(f2, HALF_ECCENTRICITY_WGS84);
-                double g3 = Math.Pow(f3, HALF_ECCENTRICITY_WGS84);
-                double g4 = Math.Pow(f4, HALF_ECCENTRICITY_WGS84);
+                double g1 = e1 / f1;
+                double g2 = e2 / f2;
+                double g3 = e3 / f3;
+                double g4 = e4 / f4;
 
-                double h1 = a1 / 2;
-                double h2 = a2 / 2;
-                double h3 = a3 / 2;
-                double h4 = a4 / 2;
+                double h1 = Math.Pow(g1, HALF_ECCENTRICITY_WGS84);
+                double h2 = Math.Pow(g2, HALF_ECCENTRICITY_WGS84);
+                double h3 = Math.Pow(g3, HALF_ECCENTRICITY_WGS84);
+                double h4 = Math.Pow(g4, HALF_ECCENTRICITY_WGS84);
 
-                double i1 = h1 + PI_OVER_4;
-                double i2 = h2 + PI_OVER_4;
-                double i3 = h3 + PI_OVER_4;
-                double i4 = h4 + PI_OVER_4;
+                double i1 = b1 / 2;
+                double i2 = b2 / 2;
+                double i3 = b3 / 2;
+                double i4 = b4 / 2;
 
-                double j1 = Math.Tan(i1);
-                double j2 = Math.Tan(i2);
-                double j3 = Math.Tan(i3);
-                double j4 = Math.Tan(i4);
+                double j1 = i1 + PI_OVER_4;
+                double j2 = i2 + PI_OVER_4;
+                double j3 = i3 + PI_OVER_4;
+                double j4 = i4 + PI_OVER_4;
 
-                double k1 = j1 * g1;
-                double k2 = j2 * g2;
-                double k3 = j3 * g3;
-                double k4 = j4 * g4;
+                double k1 = Math.Tan(j1);
+                double k2 = Math.Tan(j2);
+                double k3 = Math.Tan(j3);
+                double k4 = Math.Tan(j4);
 
-                double l1 = Math.Log(k1);
-                double l2 = Math.Log(k2);
-                double l3 = Math.Log(k3);
-                double l4 = Math.Log(k4);
+                double l1 = k1 * h1;
+                double l2 = k2 * h2;
+                double l3 = k3 * h3;
+                double l4 = k4 * h4;
 
-                double m1 = l1 * A_WGS84;
-                double m2 = l2 * A_WGS84;
-                double m3 = l3 * A_WGS84;
-                double m4 = l4 * A_WGS84;
+                double m1 = Math.Log(l1);
+                double m2 = Math.Log(l2);
+                double m3 = Math.Log(l3);
+                double m4 = Math.Log(l4);
 
-                outYs[offset - 4] = m1;
-                outYs[offset - 3] = m2;
-                outYs[offset - 2] = m3;
-                outYs[offset - 1] = m4;
+                double n1 = m1 * A_WGS84;
+                double n2 = m2 * A_WGS84;
+                double n3 = m3 * A_WGS84;
+                double n4 = m4 * A_WGS84;
+
+                outYs[offset - 4] = n1;
+                outYs[offset - 3] = n2;
+                outYs[offset - 2] = n3;
+                outYs[offset - 1] = n4;
             }
 
-            for (int offset = xs.Length - (xs.Length & 3); offset < xs.Length; ++offset)
+            offset -= 4;
+            for (; offset < xs.Length; ++offset)
             {
-                outXs[offset] = xs[offset] * LONGITUDE_DEGREES_TO_WGS84;
+                double x = xs[offset];
+                x = x * LONGITUDE_DEGREES_TO_WGS84;
+                outXs[offset] = x;
 
-                double a = ys[offset] * PI_OVER_180;
-                double b = Math.Sin(a);
-                double c = b * ECCENTRICITY_WGS84;
-                double d = 1 - c;
-                double e = 1 + c;
-                double f = d / e;
-                double g = Math.Pow(f, HALF_ECCENTRICITY_WGS84);
-                double h = a / 2;
-                double i = h + PI_OVER_4;
-                double j = Math.Tan(i);
-                double k = j * g;
-                double l = Math.Log(k);
-                outYs[offset] = l * A_WGS84;
+                double a = ys[offset];
+                double b = a * PI_OVER_180;
+                double c = Math.Sin(b);
+                double d = c * ECCENTRICITY_WGS84;
+                double e = 1 - d;
+                double f = 1 + d;
+                double g = e / f;
+                double h = Math.Pow(g, HALF_ECCENTRICITY_WGS84);
+                double i = b / 2;
+                double j = i + PI_OVER_4;
+                double k = Math.Tan(j);
+                double l = k * h;
+                double m = Math.Log(l);
+                double n = m * A_WGS84;
+                outYs[offset] = n;
             }
         }
 

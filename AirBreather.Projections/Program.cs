@@ -9,7 +9,7 @@ namespace AirBreather.Projections
         private static void Main()
         {
 #if false
-            new Bencher().ProjectNative_AVX2();
+            new Bencher().Verify();
 #else
             BenchmarkRunner.Run<Bencher>(
                 ManualConfig.Create(DefaultConfig.Instance)
