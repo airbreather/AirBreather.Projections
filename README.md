@@ -5,21 +5,18 @@
 BenchmarkDotNet=v0.10.12, OS=Windows 10 Redstone 3 [1709, Fall Creators Update] (10.0.16299.192)
 Intel Core i7-6850K CPU 3.60GHz (Skylake), 1 CPU, 12 logical cores and 6 physical cores
 Frequency=3515627 Hz, Resolution=284.4443 ns, Timer=TSC
-  [Host]     : .NET Framework 4.7 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.2600.0
-  Job-FRGPGK : .NET Framework 4.7 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.2600.0
+.NET Core SDK=2.1.4
+  [Host]     : .NET Core 2.0.5 (Framework 4.6.26020.03), 64bit RyuJIT
+  Job-ZQIYOK : .NET Core 2.0.5 (Framework 4.6.26020.03), 64bit RyuJIT
 
-AllowVeryLargeObjects=True  Server=True  
+Server=True  
 
 ```
-|                Method |      Mean |     Error |    StdDev | Scaled |
-|---------------------- |----------:|----------:|----------:|-------:|
-|        ProjectProjNet | 210.30 ms | 1.3040 ms | 1.2198 ms |   1.00 |
-|         ProjectScalar | 109.19 ms | 0.0234 ms | 0.0195 ms |   0.52 |
-| ProjectScalarUnrolled | 105.80 ms | 0.0287 ms | 0.0224 ms |   0.50 |
-|     ProjectYeppp_1024 |  76.33 ms | 0.0507 ms | 0.0424 ms |   0.36 |
-|     ProjectYeppp_2048 |  75.60 ms | 0.0145 ms | 0.0113 ms |   0.36 |
-|     ProjectYeppp_4096 |  75.98 ms | 0.0863 ms | 0.0721 ms |   0.36 |
-|     ProjectYeppp_8192 |  76.38 ms | 0.5203 ms | 0.4867 ms |   0.36 |
-|    ProjectYeppp_16384 |  76.51 ms | 0.4288 ms | 0.3801 ms |   0.36 |
-|  ProjectNative_Scalar |  57.51 ms | 0.3940 ms | 0.3492 ms |   0.27 |
-|    ProjectNative_AVX2 |  26.75 ms | 0.0381 ms | 0.0297 ms |   0.13 |
+|                       Method |      Mean |     Error |    StdDev | Scaled |
+|----------------------------- |----------:|----------:|----------:|-------:|
+|               ProjectProjNet | 162.46 ms | 0.8711 ms | 0.7722 ms |   1.00 |
+|                ProjectScalar |  79.49 ms | 0.0383 ms | 0.0358 ms |   0.49 |
+|        ProjectScalarUnrolled |  65.41 ms | 0.0247 ms | 0.0231 ms |   0.40 |
+|         ProjectNative_Scalar |  57.59 ms | 0.0376 ms | 0.0351 ms |   0.35 |
+| ProjectNative_ScalarUnrolled |  43.34 ms | 0.0620 ms | 0.0550 ms |   0.27 |
+|           ProjectNative_AVX2 |  26.86 ms | 0.0184 ms | 0.0163 ms |   0.17 |

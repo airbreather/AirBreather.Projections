@@ -24,6 +24,95 @@ __declspec(dllexport) void proj_wgs84_scalar(const int cnt, const double* xs, co
 	}
 }
 
+__declspec(dllexport) void proj_wgs84_scalar_unrolled(const int cnt, const double* xs, const double* ys, double* outXs, double* outYs)
+{
+	int o;
+	for (o = 4; o <= cnt; o += 4)
+	{
+		double x1 = xs[o - 4] * 111319.49079327357;
+		double x2 = xs[o - 3] * 111319.49079327357;
+		double x3 = xs[o - 2] * 111319.49079327357;
+		double x4 = xs[o - 1] * 111319.49079327357;
+
+		outXs[o - 4] = x1;
+		outXs[o - 3] = x2;
+		outXs[o - 2] = x3;
+		outXs[o - 1] = x4;
+
+		double a1 = ys[o - 4] * 0.017453292519943295;
+		double a2 = ys[o - 3] * 0.017453292519943295;
+		double a3 = ys[o - 2] * 0.017453292519943295;
+		double a4 = ys[o - 1] * 0.017453292519943295;
+
+		double b1 = sin(a1);
+		double b2 = sin(a2);
+		double b3 = sin(a3);
+		double b4 = sin(a4);
+
+		double c1 = b1 * 0.081819190842621486;
+		double c2 = b2 * 0.081819190842621486;
+		double c3 = b3 * 0.081819190842621486;
+		double c4 = b4 * 0.081819190842621486;
+
+		double d1 = 1 - c1;
+		double d2 = 1 - c2;
+		double d3 = 1 - c3;
+		double d4 = 1 - c4;
+
+		double e1 = 1 + c1;
+		double e2 = 1 + c2;
+		double e3 = 1 + c3;
+		double e4 = 1 + c4;
+
+		double f1 = d1 / e1;
+		double f2 = d2 / e2;
+		double f3 = d3 / e3;
+		double f4 = d4 / e4;
+
+		double g1 = pow(f1, 0.040909595421310743);
+		double g2 = pow(f2, 0.040909595421310743);
+		double g3 = pow(f3, 0.040909595421310743);
+		double g4 = pow(f4, 0.040909595421310743);
+
+		double h1 = a1 / 2;
+		double h2 = a2 / 2;
+		double h3 = a3 / 2;
+		double h4 = a4 / 2;
+
+		double i1 = h1 + 0.78539816339744828;
+		double i2 = h2 + 0.78539816339744828;
+		double i3 = h3 + 0.78539816339744828;
+		double i4 = h4 + 0.78539816339744828;
+
+		double j1 = tan(i1);
+		double j2 = tan(i2);
+		double j3 = tan(i3);
+		double j4 = tan(i4);
+
+		double k1 = j1 * g1;
+		double k2 = j2 * g2;
+		double k3 = j3 * g3;
+		double k4 = j4 * g4;
+
+		double l1 = log(k1);
+		double l2 = log(k2);
+		double l3 = log(k3);
+		double l4 = log(k4);
+
+		double m1 = l1 * 6378137;
+		double m2 = l2 * 6378137;
+		double m3 = l3 * 6378137;
+		double m4 = l4 * 6378137;
+
+		outYs[o - 4] = m1;
+		outYs[o - 3] = m2;
+		outYs[o - 2] = m3;
+		outYs[o - 1] = m4;
+	}
+
+	proj_wgs84_scalar(cnt - o, xs + o, ys + o, outXs + o, outYs + o);
+}
+
 __declspec(dllexport) void proj_wgs84_avx2(const int cnt, const double* xs, const double* ys, double* outXs, double* outYs)
 {
 	/* some constants we use... they're not compiled in as true "constants", so

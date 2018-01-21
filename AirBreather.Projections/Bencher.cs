@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Runtime;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -85,6 +84,8 @@ namespace AirBreather.Projections
             VerifyNext(nameof(this.ProjectNative_AVX2));
             this.ProjectNative_Scalar();
             VerifyNext(nameof(this.ProjectNative_Scalar));
+            this.ProjectNative_ScalarUnrolled();
+            VerifyNext(nameof(this.ProjectNative_ScalarUnrolled));
 
             void VerifyNext(string alg)
             {
@@ -133,7 +134,7 @@ namespace AirBreather.Projections
         [Benchmark]
         public void ProjectScalarUnrolled()
         {
-            for (int offset = 4; offset < xs.Length; offset += 4)
+            for (int offset = 4; offset <= xs.Length; offset += 4)
             {
                 double x1 = xs[offset - 4] * LONGITUDE_DEGREES_TO_WGS84;
                 double x2 = xs[offset - 3] * LONGITUDE_DEGREES_TO_WGS84;
@@ -236,117 +237,20 @@ namespace AirBreather.Projections
             }
         }
 
-        [Benchmark] public void ProjectYeppp_1024() => ProjectYeppp(1024);
-        [Benchmark] public void ProjectYeppp_2048() => ProjectYeppp(2048);
-        [Benchmark] public void ProjectYeppp_4096() => ProjectYeppp(4096);
-        [Benchmark] public void ProjectYeppp_8192() => ProjectYeppp(8192);
-        [Benchmark] public void ProjectYeppp_16384() => ProjectYeppp(16384);
-
-        private void ProjectYeppp(int maxChunkSize)
-        {
-            int fullChunkSize = Math.Min(maxChunkSize, CNT);
-            int endOfAllFullChunks = (xs.Length / fullChunkSize) * fullChunkSize;
-
-            double[] twoWideScratchBuffer = ArrayPool<double>.Shared.Rent(fullChunkSize << 1);
-            try
-            {
-                for (int i = 0; i < endOfAllFullChunks; i += fullChunkSize)
-                {
-                    Project(xs, ys, outXs, outYs, twoWideScratchBuffer, i, fullChunkSize);
-                }
-
-                if (endOfAllFullChunks != CNT)
-                {
-                    Project(xs, ys, outXs, outYs, twoWideScratchBuffer, endOfAllFullChunks, CNT - endOfAllFullChunks);
-                }
-            }
-            finally
-            {
-                ArrayPool<double>.Shared.Return(twoWideScratchBuffer);
-            }
-        }
-
-        private static void Project(double[] xs, double[] ys, double[] outXs, double[] outYs, double[] twoWideScratchBuffer, int offset, int cnt)
-        {
-            var m = Yeppp.Library.GetCpuMicroarchitecture();
-            var aaa = Yeppp.Library.GetCpuArchitecture();
-            var zzz = Yeppp.Library.GetProcessABI();
-
-            // use 3 "scratch" spaces where we can store intermediate values... kinda like registers
-            // if we had true arbitrarily-sized "vector registers" that could hold a full "chunk".
-            // 2 "scratch" spaces are in a separate buffer, and the output array is the third.
-            double[] scratch1 = outYs;
-            int scratch1Off = offset;
-
-            double[] scratch2 = twoWideScratchBuffer;
-            int scratch2Off = 0;
-
-            double[] scratch3 = twoWideScratchBuffer;
-            int scratch3Off = cnt;
-
-            // outXs[offset] = xs[offset] * LONGITUDE_DEGREES_TO_WGS84;
-            Yeppp.Core.Multiply_V64fS64f_V64f(xs, offset, LONGITUDE_DEGREES_TO_WGS84, outXs, offset, cnt);
-
-            // scratch buffer (i.e., "vector register") assignments:
-            // scratch1 gets a, h, i, j, k, l
-            // scratch2 gets b, c, e, g
-            // scratch3 gets d
-            // nobody   gets f (it's transient in the scalar portion)
-            //
-            // double a = ys[offset] * PI_OVER_180;
-            Yeppp.Core.Multiply_V64fS64f_V64f(ys, offset, PI_OVER_180, scratch1, scratch1Off, cnt);
-
-            // double b = Math.Sin(a);
-            Yeppp.Math.Sin_V64f_V64f(outYs, offset, scratch2, scratch2Off, cnt);
-
-            // double c = b * ECCENTRICITY_WGS84;
-            Yeppp.Core.Multiply_V64fS64f_V64f(scratch2, scratch2Off, ECCENTRICITY_WGS84, scratch2, scratch2Off, cnt);
-
-            // double d = 1 - c;
-            Yeppp.Core.Subtract_S64fV64f_V64f(1, scratch2, scratch2Off, scratch3, scratch3Off, cnt);
-
-            // double e = 1 + c;
-            Yeppp.Core.Add_IV64fS64f_IV64f(scratch2, scratch2Off, 1, cnt);
-
-            // Yeppp! doesn't support division or POW yet.
-            for (int i = 0; i < cnt; ++i)
-            {
-                // double f = d / e;
-                double f = scratch3[scratch3Off + i] / scratch2[scratch2Off + i];
-
-                // double g = Math.Pow(f, HALF_ECCENTRICITY_WGS84);
-                double g = Math.Pow(f, HALF_ECCENTRICITY_WGS84);
-
-                scratch2[scratch2Off + i] = g;
-            }
-
-            // double h = a / 2;
-            Yeppp.Core.Multiply_V64fS64f_V64f(scratch1, scratch1Off, 0.5, scratch1, scratch1Off, cnt);
-
-            // double i = h + PI_OVER_4;
-            Yeppp.Core.Add_V64fS64f_V64f(scratch1, scratch1Off, PI_OVER_4, scratch1, scratch1Off, cnt);
-
-            // double j = Math.Tan(i);
-            Yeppp.Math.Tan_V64f_V64f(scratch1, scratch1Off, scratch1, scratch1Off, cnt);
-
-            // double k = j * g;
-            Yeppp.Core.Multiply_V64fV64f_V64f(scratch1, scratch1Off, scratch2, scratch2Off, scratch1, scratch1Off, cnt);
-
-            // double l = Math.Log(k);
-            Yeppp.Math.Log_V64f_V64f(scratch1, scratch1Off, scratch1, scratch1Off, cnt);
-
-            // outYs[offset] = l * A_WGS84;
-            Yeppp.Core.Multiply_V64fS64f_V64f(scratch1, scratch1Off, A_WGS84, outYs, offset, cnt);
-        }
-
         [Benchmark]
         public void ProjectNative_Scalar() => proj_wgs84_scalar(CNT, xs, ys, outXs, outYs);
+
+        [Benchmark]
+        public void ProjectNative_ScalarUnrolled() => proj_wgs84_scalar_unrolled(CNT, xs, ys, outXs, outYs);
 
         [Benchmark]
         public void ProjectNative_AVX2() => proj_wgs84_avx2(CNT, xs, ys, outXs, outYs);
 
         [DllImport("proj-native.dll")]
         private static extern void proj_wgs84_scalar(int cnt, double[] xs, double[] ys, double[] outXs, double[] outYs);
+
+        [DllImport("proj-native.dll")]
+        private static extern void proj_wgs84_scalar_unrolled(int cnt, double[] xs, double[] ys, double[] outXs, double[] outYs);
 
         [DllImport("proj-native.dll")]
         private static extern void proj_wgs84_avx2(int cnt, double[] xs, double[] ys, double[] outXs, double[] outYs);

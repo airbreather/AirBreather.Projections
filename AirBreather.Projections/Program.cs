@@ -14,8 +14,7 @@ namespace AirBreather.Projections
             BenchmarkRunner.Run<Bencher>(
                 ManualConfig.Create(DefaultConfig.Instance)
                             .With(Job.Default
-                                     .WithGcServer(true)
-                                     .WithGcAllowVeryLargeObjects(true)));
+                                     .WithGcServer(true)));
 #endif
         }
     }
