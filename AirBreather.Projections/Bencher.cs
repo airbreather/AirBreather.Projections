@@ -90,12 +90,13 @@ namespace AirBreather.Projections
             {
                 for (int i = 0; i < CNT; ++i)
                 {
-                    if (Math.Abs(baselineXs[i] - this.outXs[i]) > 1)
+                    const double MaxDelta = 0.00000001;
+                    if (Math.Abs(baselineXs[i] - this.outXs[i]) > MaxDelta)
                     {
                         throw new Exception($"{alg}: X{i} too far apart: << {baselineXs[i]} >> vs. << {this.outXs[i]} >>");
                     }
 
-                    if (Math.Abs(baselineYs[i] - this.outYs[i]) > 1)
+                    if (Math.Abs(baselineYs[i] - this.outYs[i]) > MaxDelta)
                     {
                         throw new Exception($"{alg}: Y{i} too far apart: << {baselineYs[i]} >> vs. << {this.outYs[i]} >>");
                     }
