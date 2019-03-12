@@ -1,4 +1,5 @@
 ﻿using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 
@@ -14,7 +15,8 @@ namespace AirBreather.Projections
             BenchmarkRunner.Run<Bencher>(
                 ManualConfig.Create(DefaultConfig.Instance)
                             .With(Job.Default
-                                     .WithGcServer(true)));
+                                     .WithGcServer(true))
+                            .With(MemoryDiagnoser.Default));
 #endif
         }
     }

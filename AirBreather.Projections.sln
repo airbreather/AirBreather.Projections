@@ -4,9 +4,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.27130.2024
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AirBreather.Projections", "AirBreather.Projections\AirBreather.Projections.csproj", "{93799450-58B5-44D0-A3E3-66D9A45A5AED}"
-	ProjectSection(ProjectDependencies) = postProject
-		{400E8707-DC20-4551-B1CA-0F32EBFDFA9F} = {400E8707-DC20-4551-B1CA-0F32EBFDFA9F}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "proj-native", "proj-native\proj-native.vcxproj", "{400E8707-DC20-4551-B1CA-0F32EBFDFA9F}"
 EndProject

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Text;
 
 using BenchmarkDotNet.Attributes;
@@ -43,8 +44,8 @@ namespace AirBreather.Projections
 
         public Bencher()
         {
-            LoadLibrary(@"C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2018.1.156\windows\redist\intel64_win\compiler\svml_dispmd.dll");
-            LoadLibrary(@"C:\Users\Joe\src\AirBreather.Projections\x64\Release\proj-native.dll");
+            // was: C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2018.1.156\windows\redist\intel64_win\compiler\svml_dispmd.dll
+            Environment.CurrentDirectory = @"C:\Program Files (x86)\Common Files\intel\Shared Libraries\redist\intel64_win\compiler";
 
             if (!GCSettings.IsServerGC)
             {
@@ -267,15 +268,15 @@ namespace AirBreather.Projections
         public void ProjectNative_AVX2() => proj_wgs84_avx2(CNT, xs, ys, outXs, outYs);
 
         [DllImport("proj-native.dll")]
+        [SuppressUnmanagedCodeSecurity]
         private static extern void proj_wgs84_scalar(int cnt, double[] xs, double[] ys, double[] outXs, double[] outYs);
 
         [DllImport("proj-native.dll")]
+        [SuppressUnmanagedCodeSecurity]
         private static extern void proj_wgs84_scalar_unrolled(int cnt, double[] xs, double[] ys, double[] outXs, double[] outYs);
 
         [DllImport("proj-native.dll")]
+        [SuppressUnmanagedCodeSecurity]
         private static extern void proj_wgs84_avx2(int cnt, double[] xs, double[] ys, double[] outXs, double[] outYs);
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern IntPtr LoadLibrary(string dllToLoad);
     }
 }
